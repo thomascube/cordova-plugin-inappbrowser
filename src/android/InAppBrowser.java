@@ -55,6 +55,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.webkit.SslErrorHandler;
+import android.net.http.SslError;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.Config;
@@ -1048,6 +1053,36 @@ public class InAppBrowser extends CordovaPlugin {
         public InAppBrowserClient(CordovaWebView webView, EditText mEditText) {
             this.webView = webView;
             this.edittext = mEditText;
+        }
+
+        /**
+         * Ignore SSL Certificate errors when debug mode is active
+         */
+        @Override
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            Log.d(LOG_TAG, "We have received an SSL error on this URL: " + error.getUrl());
+            int endIndex = error.getUrl().indexOf("/", 8);
+            endIndex = endIndex == -1 ? (error.getUrl().length() - 1) : endIndex;
+            String currentUrl = error.getUrl().substring(8, endIndex);
+            if (this.isDebug()) {
+              Log.d(LOG_TAG, "App runs in debug mode, therefore, trusted");
+              handler.proceed();
+            }
+        }
+
+        /**
+         * @return Whether debug mode is activated or not.
+         */
+        private boolean isDebug() {
+          Context ctx = webView.getContext();
+          try {
+              if ((ctx.getPackageManager().getPackageInfo(
+                  ctx.getPackageName(), 0).applicationInfo.flags &
+                  ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                  return true;
+              }
+          } catch (NameNotFoundException e) { }
+          return false;
         }
 
         /**
