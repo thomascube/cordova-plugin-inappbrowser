@@ -555,17 +555,26 @@
 
     self.addressLabel = [self buildAddressLabel];
     self.addressBar = [self buildAddressBar:self.addressLabel];
+    self.toolbarAddressLabel = [self buildToolbarAddressLabel];
 
     self.closeButton = [self buildCloseButton];
     self.forwardButton = [self buildForwardButton];
     self.backButton = [self buildBackButton];
-
-    // Filter out Navigation Buttons if user requests so
-    if (_browserOptions.hidenavigationbuttons) {
-        [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton]];
-    } else {
-        [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
+  
+    NSMutableArray *toolbarItems = [NSMutableArray arrayWithArray:@[self.closeButton, flexibleSpaceButton]];
+  
+    // Add location label to toolbar if location=yes
+    if (_browserOptions.toolbar && _browserOptions.location) {
+        [toolbarItems addObjectsFromArray:@[[[UIBarButtonItem alloc] initWithCustomView:self.toolbarAddressLabel], flexibleSpaceButton]];
+        _browserOptions.location = NO;
     }
+  
+    // Add Navigation Buttons unless disabled
+    if (!_browserOptions.hidenavigationbuttons) {
+        [toolbarItems addObjectsFromArray:@[self.backButton, fixedSpaceButton, self.forwardButton]];
+    }
+  
+    [self.toolbar setItems:toolbarItems];
 
     self.view.backgroundColor = [UIColor whiteColor];
 
@@ -697,6 +706,32 @@
     addressLabel.textColor = [UIColor blackColor];
     addressLabel.userInteractionEnabled = NO;
 
+    return addressLabel;
+}
+
+- (UILabel*)buildToolbarAddressLabel
+{
+    CGFloat labelInset = 5.0;
+    UILabel *addressLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelInset, labelInset, (self.view.bounds.size.width * 0.65), LOCATIONBAR_HEIGHT)];
+    addressLabel.adjustsFontSizeToFitWidth = YES;
+    addressLabel.alpha = 1.000;
+    addressLabel.autoresizesSubviews = YES;
+    addressLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
+    addressLabel.backgroundColor = [UIColor clearColor];
+    addressLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
+    addressLabel.clearsContextBeforeDrawing = YES;
+    addressLabel.clipsToBounds = YES;
+    addressLabel.contentMode = UIViewContentModeScaleToFill;
+    addressLabel.enabled = YES;
+
+    addressLabel.multipleTouchEnabled = NO;
+    addressLabel.numberOfLines = 1;
+    addressLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:15];
+    addressLabel.text = NSLocalizedString(@"Loading...", nil);
+    addressLabel.textAlignment = NSTextAlignmentCenter;
+    addressLabel.textColor = [UIColor blackColor];
+    addressLabel.userInteractionEnabled = NO;
+    
     return addressLabel;
 }
 
@@ -1003,6 +1038,19 @@
     return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
 }
 
+- (void)updateAddressLabelText
+{
+    self.addressLabel.text = [self.currentURL absoluteString];
+
+    NSString *iconChar;
+    if ([self.currentURL.scheme isEqualToString:@"https"])
+      iconChar = [NSString stringWithFormat:@"\U0001F512"];
+    else
+      iconChar = @"";
+
+    self.toolbarAddressLabel.text = [NSString stringWithFormat:@"%@ %@", iconChar, self.currentURL.host];
+}
+
 #pragma mark UIWebViewDelegate
 
 - (void)webViewDidStartLoad:(UIWebView*)theWebView
@@ -1010,6 +1058,7 @@
     // loading url, start spinner, update back/forward
 
     self.addressLabel.text = NSLocalizedString(@"Loading...", nil);
+    self.toolbarAddressLabel.text = NSLocalizedString(@"Loading...", nil);
     self.backButton.enabled = theWebView.canGoBack;
     self.forwardButton.enabled = theWebView.canGoForward;
 
@@ -1031,8 +1080,8 @@
 - (void)webViewDidFinishLoad:(UIWebView*)theWebView
 {
     // update url, stop spinner, update back/forward
+    [self updateAddressLabelText];
 
-    self.addressLabel.text = [self.currentURL absoluteString];
     self.backButton.enabled = theWebView.canGoBack;
     self.forwardButton.enabled = theWebView.canGoForward;
 
@@ -1066,7 +1115,9 @@
     self.forwardButton.enabled = theWebView.canGoForward;
     [self.spinner stopAnimating];
 
-    self.addressLabel.text = NSLocalizedString(@"Load Error", nil);
+    [self updateAddressLabelText];
+    self.addressLabel.text = [NSString stringWithFormat:@"%@ - %@", NSLocalizedString(@"Load Error", nil), [error localizedDescription]];
+    [self showLocationBar:YES];
 
     [self.navigationDelegate webView:theWebView didFailLoadWithError:error];
 }

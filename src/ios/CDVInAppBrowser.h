@@ -91,6 +91,7 @@
 
 @property (nonatomic, strong) IBOutlet UIWebView* webView;
 @property (nonatomic, strong) IBOutlet UIBarButtonItem* closeButton;
+@property (nonatomic, strong) IBOutlet UILabel* toolbarAddressLabel;
 @property (nonatomic, strong) IBOutlet UILabel* addressLabel;
 @property (nonatomic, strong) IBOutlet UIView* addressBar;
 @property (nonatomic, strong) IBOutlet UIBarButtonItem* backButton;
