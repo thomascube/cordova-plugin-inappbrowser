@@ -571,7 +571,7 @@
   
     // Add Navigation Buttons unless disabled
     if (!_browserOptions.hidenavigationbuttons) {
-        [toolbarItems addObjectsFromArray:@[self.backButton, fixedSpaceButton, self.forwardButton]];
+        [toolbarItems addObjectsFromArray:@[self.backButton, self.forwardButton]];
     }
   
     [self.toolbar setItems:toolbarItems];
@@ -712,16 +712,16 @@
 - (UILabel*)buildToolbarAddressLabel
 {
     CGFloat labelInset = 5.0;
-    UILabel *addressLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelInset, labelInset, (self.view.bounds.size.width * 0.65), LOCATIONBAR_HEIGHT)];
+    CGFloat labelSpace = self.view.bounds.size.width * 0.75;
+    if (!_browserOptions.hidenavigationbuttons)
+      labelSpace -= 100;
+    UILabel *addressLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelInset, labelInset, labelSpace, LOCATIONBAR_HEIGHT)];
     addressLabel.adjustsFontSizeToFitWidth = YES;
     addressLabel.alpha = 1.000;
-    addressLabel.autoresizesSubviews = YES;
-    addressLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
-    addressLabel.backgroundColor = [UIColor clearColor];
+    addressLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    // addressLabel.backgroundColor = [UIColor redColor];
     addressLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
     addressLabel.clearsContextBeforeDrawing = YES;
-    addressLabel.clipsToBounds = YES;
-    addressLabel.contentMode = UIViewContentModeScaleToFill;
     addressLabel.enabled = YES;
 
     addressLabel.multipleTouchEnabled = NO;
@@ -773,8 +773,11 @@
     UIGraphicsBeginImageContextWithOptions(canvasSize, false, 0);
     CGContextRef context = UIGraphicsGetCurrentContext();
 
-    float left  = backwards ? 5.0 : 3.0;
-    float right = backwards ? 3.0 : 5.0;
+    // CGContextSetFillColorWithColor(context, [UIColor colorWithWhite:0 alpha:0.5].CGColor);
+    // CGContextFillRect(context, CGRectMake(0, 0, canvasSize.width, canvasSize.height));
+
+    float left  = backwards ? 6.0 : 4.0;
+    float right = backwards ? 4.0 : 6.0;
     CGContextBeginPath(context);
     CGContextMoveToPoint(   context, canvasSize.width * left/10.0, canvasSize.height * 2.8/10.0);
     CGContextAddLineToPoint(context, canvasSize.width * right/10.0, canvasSize.height * 5.0/10.0);
@@ -783,7 +786,7 @@
     CGContextSetLineWidth(context, (scale > 1.0 ? 0.75 * scale : 1.0));
     CGContextSetStrokeColorWithColor(context, [UIColor blackColor].CGColor);
     CGContextStrokePath(context);
-
+  
     return UIGraphicsGetImageFromCurrentImageContext();
 }
 
@@ -1273,7 +1276,7 @@
     return YES;
 }
 
-- (NSUInteger)supportedInterfaceOrientations
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
     if ((self.orientationDelegate != nil) && [self.orientationDelegate respondsToSelector:@selector(supportedInterfaceOrientations)]) {
         return [self.orientationDelegate supportedInterfaceOrientations];
