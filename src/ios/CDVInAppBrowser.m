@@ -1119,7 +1119,7 @@
     [self.spinner stopAnimating];
 
     [self updateAddressLabelText];
-    self.addressLabel.text = [NSString stringWithFormat:@"%@ - %@", NSLocalizedString(@"Load Error", nil), [error localizedDescription]];
+    self.addressLabel.text = [NSString stringWithFormat:@"%@ - %@", NSLocalizedString(@"Load_Error", nil), [error localizedDescription]];
     [self showLocationBar:YES];
 
     [self.navigationDelegate webView:theWebView didFailLoadWithError:error];
