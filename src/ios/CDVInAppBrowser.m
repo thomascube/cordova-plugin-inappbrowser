@@ -1298,3 +1298,17 @@
 
 
 @end
+
+// Disable SSL certificate check in webviews:
+// https://stackoverflow.com/questions/8858674/allow-unverified-ssl-certificate-in-uiwebview
+
+#if DEBUG
+@implementation NSURLRequest (NSURLRequestWithIgnoreSSL)
+
++ (BOOL)allowsAnyHTTPSCertificateForHost:(NSString *)host
+{
+  return YES;
+}
+
+@end
+#endif
