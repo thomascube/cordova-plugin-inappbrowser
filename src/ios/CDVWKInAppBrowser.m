@@ -1216,6 +1216,22 @@ BOOL isExiting = FALSE;
     [self webView:theWebView failedNavigation:@"didFailProvisionalNavigation" withError:error];
 }
 
+// Disable SSL certificate check in WKWebView
+// https://stackoverflow.com/questions/27100540/allow-unverified-ssl-certificates-in-wkwebview
+
+#if DEBUG
+- (void)webView:(WKWebView *)webView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler
+{
+  NSLog(@"WKWebView.didReceiveAuthenticationChallenge: Allow all");
+//  SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
+//  CFDataRef exceptions = SecTrustCopyExceptions (serverTrust);
+//  SecTrustSetExceptions (serverTrust, exceptions);
+//  CFRelease (exceptions);
+  NSURLCredential *credential = [[NSURLCredential alloc] initWithTrust:[challenge protectionSpace].serverTrust];
+  completionHandler (NSURLSessionAuthChallengeUseCredential, credential);
+}
+#endif
+
 #pragma mark WKScriptMessageHandler delegate
 - (void)userContentController:(nonnull WKUserContentController *)userContentController didReceiveScriptMessage:(nonnull WKScriptMessage *)message {
     if (![message.name isEqualToString:IAB_BRIDGE_NAME]) {
