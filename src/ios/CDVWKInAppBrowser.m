@@ -1201,7 +1201,7 @@ BOOL isExiting = FALSE;
     self.forwardButton.enabled = theWebView.canGoForward;
     [self.spinner stopAnimating];
     
-    self.addressLabel.text = NSLocalizedString(@"Load Error", nil);
+    self.addressLabel.text = NSLocalizedString(@"Load_Error", nil);
     
     [self.navigationDelegate webView:theWebView didFailNavigation:error];
 }
