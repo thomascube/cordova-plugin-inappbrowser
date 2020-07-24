@@ -35,8 +35,25 @@
 #define    IAB_BRIDGE_NAME @"cordova_iab"
 
 #define    TOOLBAR_HEIGHT 44.0
-#define    LOCATIONBAR_HEIGHT 21.0
+#define    LOCATIONBAR_HEIGHT 25.0
 #define    FOOTER_HEIGHT ((TOOLBAR_HEIGHT) + (LOCATIONBAR_HEIGHT))
+
+#pragma mark PaddedUILabel
+
+// extended UILabel with (fixed) padding
+@interface PaddedUILabel : UILabel
+@end
+
+@implementation PaddedUILabel
+
+- (void)drawTextInRect:(CGRect)uiLabelRect {
+    CGFloat paddingX = 10.0;
+    CGFloat paddingY = 2.0;
+    UIEdgeInsets paddedLabelInsets = {paddingY, paddingX, paddingY, paddingX};
+    [super drawTextInRect:UIEdgeInsetsInsetRect(uiLabelRect, paddedLabelInsets)];
+}
+
+@end
 
 #pragma mark CDVWKInAppBrowser
 
@@ -778,15 +795,16 @@ BOOL isExiting = FALSE;
     self.webView.multipleTouchEnabled = YES;
     self.webView.opaque = YES;
     self.webView.userInteractionEnabled = YES;
-    self.automaticallyAdjustsScrollViewInsets = YES ;
     [self.webView setAutoresizingMask:UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth];
     self.webView.allowsLinkPreview = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
     
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-   if (@available(iOS 11.0, *)) {
-       [self.webView.scrollView setContentInsetAdjustmentBehavior:UIScrollViewContentInsetAdjustmentNever];
-   }
+    if (@available(iOS 11.0, *)) {
+        [self.webView.scrollView setContentInsetAdjustmentBehavior:UIScrollViewContentInsetAdjustmentNever];
+    }
+#else
+    self.automaticallyAdjustsScrollViewInsets = YES ;
 #endif
     
     self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
@@ -834,15 +852,14 @@ BOOL isExiting = FALSE;
       self.toolbar.translucent = NO;
     }
     
-    CGFloat labelInset = 5.0;
     float locationBarY = toolbarIsAtBottom ? self.view.bounds.size.height - FOOTER_HEIGHT : self.view.bounds.size.height - LOCATIONBAR_HEIGHT;
     
-    self.addressLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelInset, locationBarY, self.view.bounds.size.width - labelInset, LOCATIONBAR_HEIGHT)];
+    self.addressLabel = [[PaddedUILabel alloc] initWithFrame:CGRectMake(0, locationBarY, self.view.bounds.size.width, LOCATIONBAR_HEIGHT)];
     self.addressLabel.adjustsFontSizeToFitWidth = NO;
     self.addressLabel.alpha = 1.000;
     self.addressLabel.autoresizesSubviews = YES;
     self.addressLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
-    self.addressLabel.backgroundColor = [UIColor clearColor];
+    self.addressLabel.backgroundColor = [UIColor darkGrayColor];
     self.addressLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
     self.addressLabel.clearsContextBeforeDrawing = YES;
     self.addressLabel.clipsToBounds = YES;
@@ -865,7 +882,29 @@ BOOL isExiting = FALSE;
     self.addressLabel.textAlignment = NSTextAlignmentLeft;
     self.addressLabel.textColor = [UIColor colorWithWhite:1.000 alpha:1.000];
     self.addressLabel.userInteractionEnabled = NO;
+  
+    // build toolbarAddressLabel
+    self.toolbarAddressLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, (self.view.bounds.size.width * 0.65), LOCATIONBAR_HEIGHT)];
+    self.toolbarAddressLabel.adjustsFontSizeToFitWidth = YES;
+    self.toolbarAddressLabel.alpha = 1.000;
+    self.toolbarAddressLabel.autoresizesSubviews = YES;
+    self.toolbarAddressLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin;
+    self.toolbarAddressLabel.backgroundColor = [UIColor clearColor];
+    self.toolbarAddressLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
+    self.toolbarAddressLabel.clearsContextBeforeDrawing = YES;
+    self.toolbarAddressLabel.clipsToBounds = YES;
+    self.toolbarAddressLabel.contentMode = UIViewContentModeScaleToFill;
+    self.toolbarAddressLabel.enabled = YES;
+
+    self.toolbarAddressLabel.multipleTouchEnabled = NO;
+    self.toolbarAddressLabel.numberOfLines = 1;
+    self.toolbarAddressLabel.font = [UIFont fontWithName:@"Helvetica-Bold" size:15];
+    self.toolbarAddressLabel.text = NSLocalizedString(@"Loading...", nil);
+    self.toolbarAddressLabel.textAlignment = NSTextAlignmentCenter;
+    self.toolbarAddressLabel.textColor = [UIColor colorWithWhite:0.90 alpha:1.0];
+    self.toolbarAddressLabel.userInteractionEnabled = NO;
     
+    // build forward button
     NSString* frontArrowString = NSLocalizedString(@"❯", nil); // create arrow from Unicode char
     self.forwardButton = [[UIBarButtonItem alloc] initWithTitle:frontArrowString style:UIBarButtonItemStylePlain target:self action:@selector(goForward:)];
     self.forwardButton.enabled = YES;
@@ -874,6 +913,7 @@ BOOL isExiting = FALSE;
       self.forwardButton.tintColor = [self colorFromHexString:_browserOptions.navigationbuttoncolor];
     }
 
+    // build back button
     NSString* backArrowString = NSLocalizedString(@"❮", nil); // create arrow from Unicode char
     self.backButton = [[UIBarButtonItem alloc] initWithTitle:backArrowString style:UIBarButtonItemStylePlain target:self action:@selector(goBack:)];
     self.backButton.enabled = YES;
@@ -882,19 +922,47 @@ BOOL isExiting = FALSE;
       self.backButton.tintColor = [self colorFromHexString:_browserOptions.navigationbuttoncolor];
     }
 
+    // compose toolbar items
+    NSMutableArray *toolbarItems = [NSMutableArray arrayWithArray:@[]];
+    NSMutableArray *leftToolbarItems = [NSMutableArray arrayWithArray:@[]];
+    NSMutableArray *centerToolbarItems = [NSMutableArray arrayWithArray:@[]];
+    NSMutableArray *rightToolbarItems = [NSMutableArray arrayWithArray:@[]];
+
     // Filter out Navigation Buttons if user requests so
     if (_browserOptions.hidenavigationbuttons) {
         if (_browserOptions.lefttoright) {
-            [self.toolbar setItems:@[flexibleSpaceButton, self.closeButton]];
+            [leftToolbarItems addObject:flexibleSpaceButton];
+            [rightToolbarItems addObject:self.closeButton];
         } else {
-            [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton]];
+            [leftToolbarItems addObject:self.closeButton];
+            [rightToolbarItems addObject:flexibleSpaceButton];
         }
     } else if (_browserOptions.lefttoright) {
-        [self.toolbar setItems:@[self.backButton, fixedSpaceButton, self.forwardButton, flexibleSpaceButton, self.closeButton]];
+        [leftToolbarItems addObjectsFromArray:@[self.backButton, fixedSpaceButton, self.forwardButton]];
+        [rightToolbarItems addObjectsFromArray:@[flexibleSpaceButton, self.closeButton]];
     } else {
-        [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
+        [leftToolbarItems addObjectsFromArray:@[self.closeButton, flexibleSpaceButton]];
+        [rightToolbarItems addObjectsFromArray:@[self.backButton, fixedSpaceButton, self.forwardButton]];
     }
-    
+
+    // Add location label to toolbar if location=yes
+    if (_browserOptions.toolbar && _browserOptions.location) {
+        if (_browserOptions.lefttoright) {
+          [centerToolbarItems addObjectsFromArray:@[flexibleSpaceButton, [[UIBarButtonItem alloc] initWithCustomView:self.toolbarAddressLabel]]];
+        } else {
+          [centerToolbarItems addObjectsFromArray:@[[[UIBarButtonItem alloc] initWithCustomView:self.toolbarAddressLabel], flexibleSpaceButton]];
+        }
+        // hide location bar at bottom
+        _browserOptions.location = NO;
+    }
+  
+    // combine all toolbar items
+    [toolbarItems addObjectsFromArray:leftToolbarItems];
+    [toolbarItems addObjectsFromArray:centerToolbarItems];
+    [toolbarItems addObjectsFromArray:rightToolbarItems];
+
+    [self.toolbar setItems:toolbarItems];
+
     self.view.backgroundColor = [UIColor clearColor];
     [self.view addSubview:self.toolbar];
     [self.view addSubview:self.addressLabel];
@@ -1039,6 +1107,19 @@ BOOL isExiting = FALSE;
     }
 }
 
+- (void)updateAddressLabelText
+{
+    self.addressLabel.text = [self.currentURL absoluteString];
+
+    NSString *iconChar;
+    if ([self.currentURL.scheme isEqualToString:@"https"])
+      iconChar = [NSString stringWithFormat:@"\U0001F512"];
+    else
+      iconChar = @"";
+
+    self.toolbarAddressLabel.text = [NSString stringWithFormat:@"%@ %@", iconChar, self.currentURL.host];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -1154,6 +1235,7 @@ BOOL isExiting = FALSE;
     // loading url, start spinner, update back/forward
     
     self.addressLabel.text = NSLocalizedString(@"Loading...", nil);
+    self.toolbarAddressLabel.text = NSLocalizedString(@"Loading...", nil);
     self.backButton.enabled = theWebView.canGoBack;
     self.forwardButton.enabled = theWebView.canGoForward;
     
@@ -1182,8 +1264,8 @@ BOOL isExiting = FALSE;
 - (void)webView:(WKWebView *)theWebView didFinishNavigation:(WKNavigation *)navigation
 {
     // update url, stop spinner, update back/forward
-    
-    self.addressLabel.text = [self.currentURL absoluteString];
+    [self updateAddressLabelText];
+
     self.backButton.enabled = theWebView.canGoBack;
     self.forwardButton.enabled = theWebView.canGoForward;
     theWebView.scrollView.contentInset = UIEdgeInsetsZero;
@@ -1201,8 +1283,12 @@ BOOL isExiting = FALSE;
     self.forwardButton.enabled = theWebView.canGoForward;
     [self.spinner stopAnimating];
     
-    self.addressLabel.text = NSLocalizedString(@"Load_Error", nil);
-    
+    [self updateAddressLabelText];
+
+    // display error details in location bar
+    self.addressLabel.text = [NSString stringWithFormat:@"%@ - %@", NSLocalizedString(@"Load_Error", nil), [error localizedDescription]];
+    [self showLocationBar:YES];
+
     [self.navigationDelegate webView:theWebView didFailNavigation:error];
 }
 
