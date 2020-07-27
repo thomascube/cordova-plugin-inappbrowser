@@ -1000,6 +1000,7 @@ BOOL isExiting = FALSE;
     CGRect locationbarFrame = self.addressLabel.frame;
     
     BOOL toolbarVisible = !self.toolbar.hidden;
+    BOOL toolbarPositionTop = [_browserOptions.toolbarposition isEqualToString:kInAppBrowserToolbarBarPositionTop];
     
     // prevent double show/hide
     if (show == !(self.addressLabel.hidden)) {
@@ -1009,7 +1010,7 @@ BOOL isExiting = FALSE;
     if (show) {
         self.addressLabel.hidden = NO;
         
-        if (toolbarVisible) {
+        if (toolbarVisible && !toolbarPositionTop) {
             // toolBar at the bottom, leave as is
             // put locationBar on top of the toolBar
             
@@ -1032,7 +1033,7 @@ BOOL isExiting = FALSE;
     } else {
         self.addressLabel.hidden = YES;
         
-        if (toolbarVisible) {
+        if (toolbarVisible && !toolbarPositionTop) {
             // locationBar is on top of toolBar, hide locationBar
             
             // webView take up whole height less toolBar height
